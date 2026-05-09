@@ -42,6 +42,7 @@ class handler(BaseHTTPRequestHandler):
             barrier_out = float(params.get('barrier_out', 0))
             coupon = float(params.get('coupon', 0)) / 100.0
             lock_term = int(params.get('lock_term', 0))
+            rebate = float(params.get('rebate', 1.0)) # 新增：二元/触碰期权的固定赔付额
             
             # === 新增：障碍期权特有枚举提取 ===
             inout_str = params.get('inout', 'Out')
@@ -56,8 +57,12 @@ class handler(BaseHTTPRequestHandler):
             ProductClass = getattr(pricelib, product_class)
 
             # 核心多态路由：根据产品名称动态构建对应的 kwargs
-            if product_class in ['VanillaOption', 'AsianOption', 'DigitalOption']:
+            if product_class in ['VanillaOption', 'AsianOption']:
                 option = ProductClass(s=s, strike=strike, maturity=maturity, r=r, q=q, vol=vol, callput=cp_enum, exercise_type=ex_enum)
+                
+            elif product_class == 'DigitalOption':
+                # 新增：独立处理数字期权，注入 rebate 参数
+                option = ProductClass(strike=strike, rebate=rebate, callput=cp_enum, exercise_type=ex_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
                 
             elif 'Snowball' in product_class:
                 option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, coupon_out=coupon, lock_term=lock_term, maturity=maturity, s=s, r=r, q=q, vol=vol)
