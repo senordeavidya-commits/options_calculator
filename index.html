@@ -444,7 +444,7 @@
           },
           "双边障碍 (DoubleBarrierOption)": {
             engines: [
-              { name: "PDE有限差分法 (FdmBarrierEngine)", engine_id: "FdmBarrierEngine" },
+              { name: "解析解 (AnalyticDoubleBarrierEngine)", engine_id: "AnalyticDoubleBarrierEngine" },
               { name: "蒙特卡洛模拟 (MCDoubleBarrierEngine)", engine_id: "MCDoubleBarrierEngine" }
             ],
             params: ["s", "strike", "maturity", "r", "q", "vol", "callput", "barrier_in", "barrier_out"],
@@ -489,7 +489,7 @@
               { name: "蒙特卡洛模拟 (MCDigitalEngine)", engine_id: "MCDigitalEngine" },
               { name: "PDE有限差分法 (FdmDigitalEngine)", engine_id: "FdmDigitalEngine" }
             ],
-            params: ["s", "strike", "maturity", "r", "q", "vol", "callput"],
+            params: ["s", "maturity", "r", "q", "vol", "callput", "barrier_in", "barrier_out"],
             class: "DoubleDigitalOption",
             ui: { hideExercise: true }
           },
@@ -497,7 +497,7 @@
         "累计期权 (Accurals)": {
           "累计期权 (Accumulator)": {
             engines: [
-              { name: "蒙特卡洛模拟 (MCAccumulator)", engine_id: "MCAccumulator" }
+              { name: "蒙特卡洛模拟 (MCAccumulatorEngine)", engine_id: "MCAccumulatorEngine" }
             ],
             params: ["s", "maturity", "r", "q", "vol", "callput"],
             class: "Accumulator",
@@ -505,7 +505,7 @@
           },
           "区间累计 (RangeAccural)": {
             engines: [
-              { name: "蒙特卡洛模拟 (MCRangeAccural)", engine_id: "MCRangeAccural" }
+              { name: "蒙特卡洛模拟 (MCRangeAccuralEngine)", engine_id: "MCRangeAccuralEngine" }
             ],
             params: ["s", "maturity", "r", "q", "vol"],
             class: "RangeAccural",
@@ -515,8 +515,6 @@
         "自动赎回结构 (Autocallable)": {
           "FCN": {
             engines: [
-              { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" },
-              { name: "PDE有限差分法 (FdmAutoCallableEngine)", engine_id: "FdmAutoCallableEngine" },
               { name: "积分法 (QuadFcnEngine)", engine_id: "QuadFcnEngine" }
             ],
             params: ["s", "maturity", "r", "q", "vol", "coupon"],
