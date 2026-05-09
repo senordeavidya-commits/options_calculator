@@ -4,21 +4,23 @@ import urllib.parse
 
 from pricelib import (
     VanillaOption, CallPut, ExerciseType,
-    StandardSnowball, StepdownSnowball, EarlyProfitSnowball, ButterflySnowball, ParisSnowball,
-    BarrierOption, DoubleBarrierOption, Airbag,
+    StandardSnowball, StepDownSnowball, EarlyProfitSnowball, ButterflySnowball, 
+    ParachuteSnowball, OTMSnowball, BothDownSnowball, SnowballPlus, FlooredSnowball, ParisSnowball,
+    Phoenix, FCN, DCN, AutoCall,
+    BarrierOption, DoubleBarrierOption, DoubleShark, Airbag,
     AsianOption, DigitalOption, DoubleDigitalOption,
     Accumulator, RangeAccural,
-    FCN, Phoenix,
     InOut, UpDown,
-    AnalyticVanillaEuEngine, AnalyticVanillaAmEngine,
+    AnalyticVanillaEuEngine, AnalyticVanillaAmEngine, AnalyticDoubleBarrierEngine,
     FdmVanillaEngine, MCVanillaEngine, QuadVanillaEngine, BiTreeVanillaEngine,
-    FdmSnowBallEngine, MCAutoCallableEngine, QuadSnowballEngine,
+    FdmSnowBallEngine, MCAutoCallableEngine, QuadSnowballEngine, MCParisSnowballEngine,
     AnalyticBarrierEngine, FdmBarrierEngine, MCBarrierEngine, QuadBarrierEngine, BiTreeBarrierEngine,
+    MCDoubleBarrierEngine,
     AnalyticAirbagEngine, FdmAirbagEngine, MCAirbagEngine,
     AnalyticAsianEngine, BiTreeAsianEngine, MCAsianEngine,
     AnalyticDigitalEngine, FdmDigitalEngine, MCDigitalEngine, QuadDigitalEngine, BiTreeDigitalEngine,
-    MCAccumulator, MCRangeAccural,
-    QuadFcnEngine, MCPhoenixEngine
+    MCAccumulatorEngine, MCRangeAccuralEngine,
+    QuadFCNEngine, MCPhoenixEngine
 )
 
 class handler(BaseHTTPRequestHandler):
@@ -138,7 +140,7 @@ class handler(BaseHTTPRequestHandler):
                 maturity=maturity,
                 s=s, r=r, q=q, vol=vol
             ),
-            'StepdownSnowball': StepdownSnowball(
+            'StepdownSnowball': StepDownSnowball(
                 s0=s0,
                 barrier_out=barrier_out,
                 barrier_in=barrier_in,
@@ -270,11 +272,13 @@ class handler(BaseHTTPRequestHandler):
             'FdmSnowBallEngine': FdmSnowBallEngine(s=s, r=r, q=q, vol=vol),
             'MCAutoCallableEngine': MCAutoCallableEngine(s=s, r=r, q=q, vol=vol),
             'QuadSnowballEngine': QuadSnowballEngine(s=s, r=r, q=q, vol=vol),
-            'MCParisSnowballEngine': MCPhoenixEngine(s=s, r=r, q=q, vol=vol),
+            'MCParisSnowballEngine': MCParisSnowballEngine(s=s, r=r, q=q, vol=vol),
             
             # 障碍期权引擎
             'AnalyticBarrierEngine': AnalyticBarrierEngine(s=s, r=r, q=q, vol=vol),
+            'AnalyticDoubleBarrierEngine': AnalyticDoubleBarrierEngine(s=s, r=r, q=q, vol=vol),
             'FdmBarrierEngine': FdmBarrierEngine(s=s, r=r, q=q, vol=vol),
+            'MCDoubleBarrierEngine': MCDoubleBarrierEngine(s=s, r=r, q=q, vol=vol),
             'MCBarrierEngine': MCBarrierEngine(s=s, r=r, q=q, vol=vol),
             'QuadBarrierEngine': QuadBarrierEngine(s=s, r=r, q=q, vol=vol),
             'BiTreeBarrierEngine': BiTreeBarrierEngine(s=s, r=r, q=q, vol=vol),
@@ -297,11 +301,11 @@ class handler(BaseHTTPRequestHandler):
             'BiTreeDigitalEngine': BiTreeDigitalEngine(s=s, r=r, q=q, vol=vol),
             
             # 累计期权引擎
-            'MCAccumulator': MCAccumulator(s=s, r=r, q=q, vol=vol),
-            'MCRangeAccural': MCRangeAccural(s=s, r=r, q=q, vol=vol),
+            'MCAccumulator': MCAccumulatorEngine(s=s, r=r, q=q, vol=vol),
+            'MCRangeAccural': MCRangeAccuralEngine(s=s, r=r, q=q, vol=vol),
             
             # FCN引擎
-            'QuadFcnEngine': QuadFcnEngine(s=s, r=r, q=q, vol=vol),
+            'QuadFcnEngine': QuadFCNEngine(s=s, r=r, q=q, vol=vol),
             
             # Phoenix引擎
             'MCPhoenixEngine': MCPhoenixEngine(s=s, r=r, q=q, vol=vol),
