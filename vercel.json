@@ -6,7 +6,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/projects/option-pricing.html"
+      "destination": "/projects/index.html"
     }
   ]
 }

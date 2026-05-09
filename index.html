@@ -718,6 +718,22 @@
         $("rho").textContent = fmt4(res.rho);
       }
 
+      function renderResultFromNewAPI(response) {
+        const { code, data, msg } = response;
+        if (code !== 0) {
+          throw new Error(msg || "服务器返回错误");
+        }
+        const result = {
+          pv: data.pv,
+          delta: data.greeks?.delta,
+          gamma: data.greeks?.gamma,
+          vega: data.greeks?.vega,
+          theta: data.greeks?.theta,
+          rho: data.greeks?.rho,
+        };
+        renderResult(result);
+      }
+
       // Toggle wiring
       $("btnCall").addEventListener("click", () => {
         state.callput = "Call";
@@ -872,13 +888,14 @@
           }
 
           if (!resp.ok) {
-            throw new Error(data.error || `HTTP ${resp.status}`);
+            throw new Error(data.error || data.msg || `HTTP ${resp.status}`);
           }
 
-          renderResult(data);
+          renderResultFromNewAPI(data);
           $("statusText").textContent = "成功 (OK)";
         } catch (e) {
           $("statusText").textContent = "错误 (Error)";
+          console.error("API 请求错误:", e);
           setErr(String(e && e.message ? e.message : e));
         } finally {
           setLoading(false);
