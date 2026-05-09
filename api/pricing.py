@@ -1,13 +1,14 @@
 from http.server import BaseHTTPRequestHandler
 import json
 import urllib.parse
+import traceback
 
 from pricelib import (
     VanillaOption, CallPut, ExerciseType,
     StandardSnowball, StepDownSnowball, EarlyProfitSnowball, ButterflySnowball, 
-    ParachuteSnowball, OTMSnowball, BothDownSnowball, SnowballPlus, FlooredSnowball, ParisSnowball,
-    Phoenix, FCN, DCN, AutoCall,
-    BarrierOption, DoubleBarrierOption, DoubleShark, Airbag,
+    ParisSnowball,
+    Phoenix, FCN,
+    BarrierOption, DoubleBarrierOption, Airbag,
     AsianOption, DigitalOption, DoubleDigitalOption,
     Accumulator, RangeAccural,
     InOut, UpDown,
@@ -37,42 +38,45 @@ class handler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length).decode('utf-8')
             params = json.loads(post_data)
 
-            # 动态提取通用参数（使用安全的 .get() 方法并转换类型）
-            s = float(params.get('s', 0))
-            strike = float(params.get('strike', 0))
-            maturity = float(params.get('maturity', 0))
-            r = float(params.get('r', 0)) / 100.0  # 前端传的是百分比
+            # 1. 解析基础数值参数（使用安全的 .get() 方法并转换类型）
+            s = float(params.get('s', 100))
+            strike = float(params.get('strike', 100))
+            maturity = float(params.get('maturity', 1))
+            r = float(params.get('r', 3)) / 100.0  # 前端传的是百分比
             q = float(params.get('q', 0)) / 100.0   # 前端传的是百分比
-            vol = float(params.get('vol', 0)) / 100.0  # 前端传的是百分比
+            vol = float(params.get('vol', 15)) / 100.0  # 前端传的是百分比
             
-            # 解析期权类型和行权方式
+            # 2. 核心修复：解析 Enum 映射
             callput_str = params.get('callput', 'Call')
-            exercise_type_str = params.get('exercise_type', 'European')
+            cp_enum = CallPut.Call if 'Call' in callput_str else CallPut.Put
+
+            subcategory_str = params.get('subCategory', 'European')
+            # 根据前端传来的 "欧式期权 (European)" 或 "美式期权 (American)" 进行模糊匹配
+            ex_enum = ExerciseType.American if 'American' in subcategory_str or '美式' in subcategory_str else ExerciseType.European
+
+            # 3. 获取产品类和引擎信息
             product_class = params.get('product_class', 'VanillaOption')
             engine_id = params.get('engine_id', '')
-            
-            callput_enum = CallPut.Call if callput_str == "Call" else CallPut.Put
-            exercise_type_enum = ExerciseType.European if exercise_type_str == "European" else ExerciseType.American
 
-            # 动态创建产品对象
+            # 4. 动态创建产品对象
             option = self.create_product(
                 product_class,
                 s=s, strike=strike, maturity=maturity,
                 r=r, q=q, vol=vol,
-                callput=callput_enum, exercise_type=exercise_type_enum,
+                callput=cp_enum, exercise_type=ex_enum,
                 params=params
             )
             
-            # 根据engine_id设置定价引擎（如果提供）
+            # 5. 根据engine_id设置定价引擎（如果提供）
             if engine_id:
                 engine = self.create_engine(engine_id, s=s, r=r, q=q, vol=vol)
                 if engine:
                     option.set_pricing_engine(engine)
             
-            # 执行定价计算
+            # 6. 执行定价计算
             result = option.pv_and_greeks()
 
-            # 构建响应数据
+            # 7. 构建响应数据
             response_data = {
                 "code": 0,
                 "data": {
@@ -94,11 +98,19 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(response_data).encode('utf-8'))
             
         except Exception as e:
-            self.send_response(500)
+            # Vercel 兜底机制：必须将异常堆栈打包成 JSON 返回
+            error_trace = traceback.format_exc()
+            self.send_response(200)  # 使用 200 保证前端能收到 JSON 解析
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            self.wfile.write(json.dumps({"code": -1, "msg": str(e)}).encode('utf-8'))
+            
+            error_response = {
+                "code": -1,
+                "msg": str(e),
+                "trace": error_trace  # 将真实报错发给前端方便调试
+            }
+            self.wfile.write(json.dumps(error_response).encode('utf-8'))
 
     def create_product(self, product_class, **kwargs):
         """动态创建产品对象"""
@@ -140,7 +152,7 @@ class handler(BaseHTTPRequestHandler):
                 maturity=maturity,
                 s=s, r=r, q=q, vol=vol
             ),
-            'StepdownSnowball': StepDownSnowball(
+            'StepDownSnowball': StepDownSnowball(
                 s0=s0,
                 barrier_out=barrier_out,
                 barrier_in=barrier_in,
@@ -301,11 +313,11 @@ class handler(BaseHTTPRequestHandler):
             'BiTreeDigitalEngine': BiTreeDigitalEngine(s=s, r=r, q=q, vol=vol),
             
             # 累计期权引擎
-            'MCAccumulator': MCAccumulatorEngine(s=s, r=r, q=q, vol=vol),
-            'MCRangeAccural': MCRangeAccuralEngine(s=s, r=r, q=q, vol=vol),
+            'MCAccumulatorEngine': MCAccumulatorEngine(s=s, r=r, q=q, vol=vol),
+            'MCRangeAccuralEngine': MCRangeAccuralEngine(s=s, r=r, q=q, vol=vol),
             
             # FCN引擎
-            'QuadFcnEngine': QuadFCNEngine(s=s, r=r, q=q, vol=vol),
+            'QuadFCNEngine': QuadFCNEngine(s=s, r=r, q=q, vol=vol),
             
             # Phoenix引擎
             'MCPhoenixEngine': MCPhoenixEngine(s=s, r=r, q=q, vol=vol),
