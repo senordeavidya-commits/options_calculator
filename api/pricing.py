@@ -38,18 +38,36 @@ class handler(BaseHTTPRequestHandler):
             # === 高级结构参数提取 ===
             s0 = float(params.get('s0', s))
             barrier = float(params.get('barrier', s))
-            barrier_in = float(params.get('barrier_in', 0))
-            barrier_out = float(params.get('barrier_out', 0))
-            coupon = float(params.get('coupon', 0)) / 100.0
-            lock_term = int(params.get('lock_term', 0))
-            rebate = float(params.get('rebate', 1.0)) # 新增：二元/触碰期权的固定赔付额
+            barrier_in = float(params.get('barrier_in', 80))
+            barrier_out = float(params.get('barrier_out', 103))
+            coupon = float(params.get('coupon', 10)) / 100.0
+            lock_term = int(params.get('lock_term', 3))
+            rebate = float(params.get('rebate', 1.0))
             
-            # === 新增：障碍期权特有枚举提取 ===
+            # === 障碍期权特有枚举提取 ===
             inout_str = params.get('inout', 'Out')
             inout_enum = pricelib.InOut.In if 'In' in inout_str else pricelib.InOut.Out
             
             updown_str = params.get('updown', 'Up')
             updown_enum = pricelib.UpDown.Up if 'Up' in updown_str else pricelib.UpDown.Down
+            
+            # === 二元期权特有参数 ===
+            touch_type_str = params.get('touch_type', 'Touch')
+            touch_type_enum = pricelib.TouchType.Touch if 'Touch' in touch_type_str else pricelib.TouchType.NotTouch
+            
+            payment_type_str = params.get('payment_type', 'Expire')
+            payment_type_enum = pricelib.PaymentType.Hit if 'Hit' in payment_type_str else pricelib.PaymentType.Expire
+
+            # === 亚式期权特有参数 ===
+            ave_method_str = params.get('ave_method', 'Arithmetic')
+            ave_method_enum = pricelib.AverageMethod.Arithmetic if 'Arithmetic' in ave_method_str else pricelib.AverageMethod.Geometric
+            
+            substitute_str = params.get('substitute', 'Underlying')
+            substitute_enum = pricelib.AsianAveSubstitution.Underlying if 'Underlying' in substitute_str else pricelib.AsianAveSubstitution.Strike
+
+            # === 额外参数 ===
+            leverage_ratio = float(params.get('leverage_ratio', 2))
+            barrier_yield = float(params.get('barrier_yield', barrier_out))
 
             # 校验产品是否存在于底层库
             if not hasattr(pricelib, product_class):
@@ -57,53 +75,153 @@ class handler(BaseHTTPRequestHandler):
             ProductClass = getattr(pricelib, product_class)
 
             # 核心多态路由：根据产品名称动态构建对应的 kwargs
-            if product_class in ['VanillaOption', 'AsianOption']:
-                option = ProductClass(s=s, strike=strike, maturity=maturity, r=r, q=q, vol=vol, callput=cp_enum, exercise_type=ex_enum)
+            # === 香草期权 ===
+            if product_class == 'VanillaOption':
+                option = ProductClass(strike=strike, maturity=maturity, r=r, q=q, vol=vol, callput=cp_enum, exercise_type=ex_enum, s=s)
                 
+            # === 亚式期权 ===
+            elif product_class == 'AsianOption':
+                option = ProductClass(callput=cp_enum, ave_method=ave_method_enum, strike=strike, 
+                                     substitute=substitute_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            # === 二元期权 ===
             elif product_class == 'DigitalOption':
-                # 新增：独立处理数字期权，注入 rebate 参数
-                option = ProductClass(strike=strike, rebate=rebate, callput=cp_enum, exercise_type=ex_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                option = ProductClass(strike=strike, rebate=rebate, callput=cp_enum, exercise_type=ex_enum, 
+                                     payment_type=payment_type_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
                 
-            elif 'Snowball' in product_class:
-                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, coupon_out=coupon, lock_term=lock_term, maturity=maturity, s=s, r=r, q=q, vol=vol)
-                
-            elif product_class == 'BarrierOption':
-                option = ProductClass(strike=strike, barrier=barrier, rebate=0, callput=cp_enum, inout=inout_enum, updown=updown_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
-                
-            elif product_class == 'DoubleBarrierOption':
-                option = ProductClass(strike=strike, barrier_lower=barrier_in, barrier_upper=barrier_out, rebate_lower=0, rebate_upper=0, callput=cp_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
-                
+            # === 双边二元期权 ===
             elif product_class == 'DoubleDigitalOption':
-                option = ProductClass(strike_lower=barrier_in, strike_upper=barrier_out, callput=cp_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                bound = (barrier_in, barrier_out)
+                option = ProductClass(touch_type=touch_type_enum, exercise_type=ex_enum, payment_type=payment_type_enum,
+                                     bound=bound, rebate=(rebate, rebate), maturity=maturity, s=s, r=r, q=q, vol=vol)
                 
+            # === 单边障碍期权 ===
+            elif product_class == 'BarrierOption':
+                option = ProductClass(strike=strike, barrier=barrier, rebate=rebate, callput=cp_enum, 
+                                     inout=inout_enum, updown=updown_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            # === 双边障碍期权 ===
+            elif product_class == 'DoubleBarrierOption':
+                bound = (barrier_in, barrier_out)
+                option = ProductClass(strike=strike, callput=cp_enum, inout=inout_enum, exercise_type=ex_enum,
+                                     payment_type=payment_type_enum, bound=bound, rebate=(0, 0), maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            # === 安全气囊 ===
             elif product_class == 'Airbag':
-                option = ProductClass(strike=strike, barrier=barrier, callput=cp_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                option = ProductClass(strike=strike, barrier=barrier, knockin_parti=1, call_parti=0.8, 
+                                     reset_call_parti=1, maturity=maturity, s=s, r=r, q=q, vol=vol)
                 
-            elif product_class == 'RangeAccural':
-                option = ProductClass(s0=s0, barrier_lower=barrier_in, barrier_upper=barrier_out, maturity=maturity, s=s, r=r, q=q, vol=vol)
+            # === 双鲨期权 ===
+            elif product_class == 'DoubleShark':
+                strike_tuple = (min(strike, s), max(strike, s * 1.1)) if strike != 0 else (90, 110)
+                bound = (barrier_in, barrier_out) if barrier_in != 0 and barrier_out != 0 else (80, 120)
+                option = ProductClass(strike=strike_tuple, bound=bound, rebate=(0, 0), parti=(1, 1),
+                                     maturity=maturity, s=s, r=r, q=q, vol=vol)
                 
+            # === 标准雪球系列（使用通用参数）===
+            elif product_class == 'StandardSnowball':
+                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, 
+                                     coupon_out=coupon, lock_term=lock_term, maturity=maturity, 
+                                     s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'StepDownSnowball':
+                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, 
+                                     coupon_out=coupon, lock_term=lock_term, maturity=maturity, 
+                                     s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'OTMSnowball':
+                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, 
+                                     coupon_out=coupon, lock_term=lock_term, maturity=maturity, 
+                                     s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'SnowballPlus':
+                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, 
+                                     coupon_out=coupon, lock_term=lock_term, maturity=maturity, 
+                                     s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'FlooredSnowball':
+                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, 
+                                     coupon_out=coupon, lock_term=lock_term, maturity=maturity, 
+                                     s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'ParachuteSnowball':
+                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, 
+                                     coupon_out=coupon, lock_term=lock_term, maturity=maturity, 
+                                     s=s, r=r, q=q, vol=vol)
+                
+            # === 特殊雪球（需要额外处理）===
+            elif product_class == 'ParisSnowball':
+                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, 
+                                     coupon_out=coupon, lock_term=lock_term, maturity=maturity, 
+                                     s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'EarlyProfitSnowball':
+                # 早利雪球需要两个票息参数
+                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, 
+                                     coupon_out1=coupon, coupon_out2=coupon*0.8, lock_term=lock_term, 
+                                     maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'ButterflySnowball':
+                # 蝶变雪球需要三个票息参数
+                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, 
+                                     coupon_out1=coupon, coupon_out2=coupon*0.9, coupon_out3=coupon*0.8, 
+                                     lock_term=lock_term, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'BothDownSnowball':
+                # 双边降敲雪球需要特殊参数
+                option = ProductClass(s0=s0, barrier_out_start=barrier_out, barrier_out_step=1, 
+                                     barrier_in=barrier_in, coupon_ko_start=coupon, coupon_ko_step=0.01,
+                                     lock_term=lock_term, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            # === FCN/DCN ===
+            elif product_class == 'FCN':
+                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, 
+                                     coupon=coupon, lock_term=lock_term, maturity=maturity, 
+                                     s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'DCN':
+                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, 
+                                     coupon=coupon, lock_term=lock_term, maturity=maturity, 
+                                     s=s, r=r, q=q, vol=vol)
+                
+            # === Phoenix ===
+            elif product_class == 'Phoenix':
+                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_yield=barrier_yield, 
+                                     barrier_in=barrier_in, coupon=coupon, lock_term=lock_term, 
+                                     maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            # === AutoCall ===
+            elif product_class == 'AutoCall':
+                option = ProductClass(s0=s0, barrier_out=barrier_out, coupon_out=coupon, 
+                                     coupon_div=0, lock_term=lock_term, maturity=maturity, 
+                                     s=s, r=r, q=q, vol=vol)
+                
+            # === Accumulator ===
             elif product_class == 'Accumulator':
-                option = ProductClass(s0=s0, callput=cp_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                option = ProductClass(s0=s0, barrier_out=barrier_out, strike=strike, 
+                                     leverage_ratio=leverage_ratio, maturity=maturity, 
+                                     s=s, r=r, q=q, vol=vol)
                 
-            elif product_class in ['FCN', 'Phoenix']:
-                option = ProductClass(s0=s0, coupon_rate=coupon, maturity=maturity, s=s, r=r, q=q, vol=vol)
+            # === RangeAccural ===
+            elif product_class == 'RangeAccural':
+                option = ProductClass(s0=s0, upper_strike=barrier_out, lower_strike=barrier_in, 
+                                     payment=coupon, maturity=maturity, s=s, r=r, q=q, vol=vol)
                 
             else:
                 raise ValueError(f"系统网关暂未配置此产品类型的参数路由: {product_class}")
             
-            # 4. 动态引擎注入 (极其优雅的反射机制)
+            # 动态引擎注入
             if engine_id:
                 if not hasattr(pricelib, engine_id):
                     raise ValueError(f"底层库不存在此定价引擎: {engine_id}")
-                # 动态抓取引擎类并实例化
                 EngineClass = getattr(pricelib, engine_id)
                 engine = EngineClass(s=s, r=r, q=q, vol=vol)
                 option.set_pricing_engine(engine)
             
-            # 5. 执行定价计算
+            # 执行定价计算
             result = option.pv_and_greeks()
 
-            # 6. 构建安全响应
+            # 构建安全响应
             response_data = {
                 "code": 0,
                 "data": {
@@ -125,7 +243,6 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(response_data).encode('utf-8'))
             
         except Exception as e:
-            # 终极护盾：哪怕底层算爆了，前端也能收到绿色的 200 和红色的报错提示，绝不 500 崩溃
             error_trace = traceback.format_exc()
             self.send_response(200) 
             self.send_header('Content-type', 'application/json')
