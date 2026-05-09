@@ -35,32 +35,55 @@ class handler(BaseHTTPRequestHandler):
             product_class = params.get('product_class', 'VanillaOption')
             engine_id = params.get('engine_id', '')
 
-            # 3. 懒加载：根据产品类型动态实例化 (只算你需要的那一个)
-            if product_class == 'VanillaOption':
-                option = pricelib.VanillaOption(
-                    s=s, strike=strike, maturity=maturity,
-                    r=r, q=q, vol=vol,
-                    callput=cp_enum, exercise_type=ex_enum
-                )
-            elif 'Snowball' in product_class:
-                # 动态处理雪球类产品
-                s0 = float(params.get('s0', s))
-                barrier_in = float(params.get('barrier_in', 0))
-                barrier_out = float(params.get('barrier_out', 0))
-                coupon = float(params.get('coupon', 0)) / 100.0
-                lock_term = int(params.get('lock_term', 0))
+            # === 高级结构参数提取 ===
+            s0 = float(params.get('s0', s))
+            barrier = float(params.get('barrier', s))
+            barrier_in = float(params.get('barrier_in', 0))
+            barrier_out = float(params.get('barrier_out', 0))
+            coupon = float(params.get('coupon', 0)) / 100.0
+            lock_term = int(params.get('lock_term', 0))
+            
+            # === 新增：障碍期权特有枚举提取 ===
+            inout_str = params.get('inout', 'Out')
+            inout_enum = pricelib.InOut.In if 'In' in inout_str else pricelib.InOut.Out
+            
+            updown_str = params.get('updown', 'Up')
+            updown_enum = pricelib.UpDown.Up if 'Up' in updown_str else pricelib.UpDown.Down
+
+            # 校验产品是否存在于底层库
+            if not hasattr(pricelib, product_class):
+                raise ValueError(f"库中找不到该产品结构: {product_class}")
+            ProductClass = getattr(pricelib, product_class)
+
+            # 核心多态路由：根据产品名称动态构建对应的 kwargs
+            if product_class in ['VanillaOption', 'AsianOption', 'DigitalOption']:
+                option = ProductClass(s=s, strike=strike, maturity=maturity, r=r, q=q, vol=vol, callput=cp_enum, exercise_type=ex_enum)
                 
-                # 动态获取对应的雪球类
-                if not hasattr(pricelib, product_class):
-                    raise ValueError(f"库中找不到该雪球结构: {product_class}")
-                ProductClass = getattr(pricelib, product_class)
-                option = ProductClass(
-                    s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, 
-                    coupon_out=coupon, lock_term=lock_term, maturity=maturity, 
-                    s=s, r=r, q=q, vol=vol
-                )
+            elif 'Snowball' in product_class:
+                option = ProductClass(s0=s0, barrier_out=barrier_out, barrier_in=barrier_in, coupon_out=coupon, lock_term=lock_term, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'BarrierOption':
+                option = ProductClass(strike=strike, barrier=barrier, rebate=0, callput=cp_enum, inout=inout_enum, updown=updown_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'DoubleBarrierOption':
+                option = ProductClass(strike=strike, barrier_lower=barrier_in, barrier_upper=barrier_out, rebate_lower=0, rebate_upper=0, callput=cp_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'DoubleDigitalOption':
+                option = ProductClass(strike_lower=barrier_in, strike_upper=barrier_out, callput=cp_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'Airbag':
+                option = ProductClass(strike=strike, barrier=barrier, callput=cp_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'RangeAccural':
+                option = ProductClass(s0=s0, barrier_lower=barrier_in, barrier_upper=barrier_out, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            elif product_class == 'Accumulator':
+                option = ProductClass(s0=s0, callput=cp_enum, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
+            elif product_class in ['FCN', 'Phoenix']:
+                option = ProductClass(s0=s0, coupon_rate=coupon, maturity=maturity, s=s, r=r, q=q, vol=vol)
+                
             else:
-                # 如果是你还没在前端做好参数对应的新奇期权，优雅地报错
                 raise ValueError(f"系统网关暂未配置此产品类型的参数路由: {product_class}")
             
             # 4. 动态引擎注入 (极其优雅的反射机制)
