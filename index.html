@@ -45,7 +45,7 @@
             <div class="h-10 w-10 rounded-xl bg-blue-500/20 ring-1 ring-blue-400/30 panel-glow"></div>
             <div>
               <div class="text-lg font-semibold tracking-wide">期权定价引擎 <span class="text-sm font-medium text-gray-500">(Option Pricing)</span></div>
-              <div class="text-sm text-gray-400">PriceLib · 香草期权 <span class="text-gray-500">(VanillaOption)</span> · PV &amp; Greeks</div>
+              <div class="text-sm text-gray-400">PriceLib · 支持全产品线 <span class="text-gray-500">(All Products)</span> · PV &amp; Greeks</div>
             </div>
           </div>
         </div>
@@ -402,13 +402,13 @@
             class: "ParisSnowball",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
-          "降敲雪球 (StepdownSnowball)": {
+          "降敲雪球 (StepDownSnowball)": {
             engines: [
               { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
               { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
             ],
             params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
-            class: "StepdownSnowball",
+            class: "StepDownSnowball",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
           "早利雪球 (EarlyProfitSnowball)": {
@@ -427,6 +427,51 @@
             ],
             params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "ButterflySnowball",
+            ui: { hideStrike: true, hideCallput: true, hideExercise: true }
+          },
+          "降落伞雪球 (ParachuteSnowball)": {
+            engines: [
+              { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
+              { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
+            ],
+            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            class: "ParachuteSnowball",
+            ui: { hideStrike: true, hideCallput: true, hideExercise: true }
+          },
+          "OTM雪球 (OTMSnowball)": {
+            engines: [
+              { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
+              { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
+            ],
+            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            class: "OTMSnowball",
+            ui: { hideStrike: true, hideCallput: true, hideExercise: true }
+          },
+          "双边降敲雪球 (BothDownSnowball)": {
+            engines: [
+              { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
+              { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
+            ],
+            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            class: "BothDownSnowball",
+            ui: { hideStrike: true, hideCallput: true, hideExercise: true }
+          },
+          "雪球增强 (SnowballPlus)": {
+            engines: [
+              { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
+              { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
+            ],
+            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            class: "SnowballPlus",
+            ui: { hideStrike: true, hideCallput: true, hideExercise: true }
+          },
+          "保底雪球 (FlooredSnowball)": {
+            engines: [
+              { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
+              { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
+            ],
+            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            class: "FlooredSnowball",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
         },
@@ -456,8 +501,19 @@
               { name: "PDE有限差分法 (FdmAirbagEngine)", engine_id: "FdmAirbagEngine" },
               { name: "蒙特卡洛模拟 (MCAirbagEngine)", engine_id: "MCAirbagEngine" }
             ],
-            params: ["s", "strike", "maturity", "r", "q", "vol", "callput", "barrier"],
-            class: "Airbag"
+            params: ["s", "strike", "maturity", "r", "q", "vol", "barrier"],
+            class: "Airbag",
+            ui: { hideCallput: true, hideExercise: true }
+          },
+          "双鲨 (DoubleShark)": {
+            engines: [
+              { name: "PDE有限差分法 (FdmDoubleSharkEngine)", engine_id: "FdmDoubleSharkEngine" },
+              { name: "蒙特卡洛模拟 (MCDoubleSharkEngine)", engine_id: "MCDoubleSharkEngine" },
+              { name: "积分法 (QuadDoubleSharkEngine)", engine_id: "QuadDoubleSharkEngine" }
+            ],
+            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out"],
+            class: "DoubleShark",
+            ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
         },
         "亚式期权 (Asian)": {
@@ -489,9 +545,9 @@
               { name: "蒙特卡洛模拟 (MCDigitalEngine)", engine_id: "MCDigitalEngine" },
               { name: "PDE有限差分法 (FdmDigitalEngine)", engine_id: "FdmDigitalEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "callput", "barrier_in", "barrier_out"],
+            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out"],
             class: "DoubleDigitalOption",
-            ui: { hideExercise: true }
+            ui: { hideExercise: true, hideCallput: true }
           },
         },
         "累计期权 (Accurals)": {
@@ -499,7 +555,7 @@
             engines: [
               { name: "蒙特卡洛模拟 (MCAccumulatorEngine)", engine_id: "MCAccumulatorEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "callput"],
+            params: ["s", "strike", "maturity", "r", "q", "vol", "barrier_out"],
             class: "Accumulator",
             ui: { hideExercise: true }
           },
@@ -507,25 +563,43 @@
             engines: [
               { name: "蒙特卡洛模拟 (MCRangeAccuralEngine)", engine_id: "MCRangeAccuralEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol"],
+            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon"],
             class: "RangeAccural",
             ui: { hideExercise: true, hideCallput: true }
           },
         },
         "自动赎回结构 (Autocallable)": {
+          "自动赎回 (AutoCall)": {
+            engines: [
+              { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" },
+              { name: "积分法 (QuadAutoCallEngine)", engine_id: "QuadAutoCallEngine" }
+            ],
+            params: ["s", "maturity", "r", "q", "vol", "barrier_out", "coupon", "lock_term"],
+            class: "AutoCall",
+            ui: { hideStrike: true, hideCallput: true, hideExercise: true }
+          },
           "FCN": {
             engines: [
-              { name: "积分法 (QuadFcnEngine)", engine_id: "QuadFcnEngine" }
+              { name: "积分法 (QuadFcnEngine)", engine_id: "QuadFcnEngine" },
+              { name: "蒙特卡洛模拟 (MCPhoenixEngine)", engine_id: "MCPhoenixEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "coupon"],
+            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "FCN",
+            ui: { hideStrike: true, hideCallput: true, hideExercise: true }
+          },
+          "DCN": {
+            engines: [
+              { name: "蒙特卡洛模拟 (MCPhoenixEngine)", engine_id: "MCPhoenixEngine" }
+            ],
+            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            class: "DCN",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
           "凤凰 (Phoenix)": {
             engines: [
               { name: "蒙特卡洛模拟 (MCPhoenixEngine)", engine_id: "MCPhoenixEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "coupon"],
+            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "Phoenix",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -623,8 +697,6 @@
         const inputs = moduleEl.querySelectorAll("input, select, button, textarea");
         inputs.forEach((el) => {
           if (el.id === "btnCall" || el.id === "btnPut" || el.id === "btnEuropean" || el.id === "btnAmerican") {
-            // These are still part of module, but for hide/show we rely on parent visibility.
-            // No-op here.
             return;
           }
           if ("disabled" in el) el.disabled = !enabled;
@@ -636,13 +708,11 @@
         const required = new Set((cfg && cfg.params) || []);
         const ui = (cfg && cfg.ui) || {};
 
-        // Param modules
         const allParamModules = document.querySelectorAll("[id^='mod_param_']");
         allParamModules.forEach((mod) => {
           const key = mod.getAttribute("data-param");
           let enabled = required.has(key);
           
-          // Special cases based on UI configuration
           if (key === "strike" && ui.hideStrike) {
             enabled = false;
           }
@@ -650,11 +720,9 @@
           setModuleEnabled(mod, enabled);
         });
 
-        // Call/Put toggle
         const callputNeeded = required.has("callput") && !ui.hideCallput;
         setModuleEnabled($("mod_callput"), callputNeeded);
 
-        // Exercise toggle
         const exerciseNeeded = required.has("exercise_type") && !ui.hideExercise;
         setModuleEnabled($("mod_exercise"), exerciseNeeded);
 
@@ -698,8 +766,12 @@
           payload[key] = Number(el.value);
         }
 
-        // For snowball products, use s as s0
         if (cfg?.class && cfg.class.includes("Snowball")) {
+          payload.s0 = payload.s;
+          delete payload.s;
+        }
+
+        if (cfg?.class && ['AutoCall', 'Accumulator', 'RangeAccural', 'FCN', 'DCN', 'Phoenix'].includes(cfg.class)) {
           payload.s0 = payload.s;
           delete payload.s;
         }
@@ -732,7 +804,6 @@
         renderResult(result);
       }
 
-      // Toggle wiring
       $("btnCall").addEventListener("click", () => {
         state.callput = "Call";
         setActivePill($("btnCall"), $("btnPut"), "blue");
@@ -784,7 +855,6 @@
         renderOptions($("selSubCategory"), subcategories, state.subCategory);
         renderOptions($("selEngine"), engines, state.pricingEngine);
 
-        // Set default exercise type based on sub-category
         const subConfig = PRICING_CONFIG[state.category]?.[state.subCategory];
         if (subConfig?.exercise_type) {
           state.exercise_type = subConfig.exercise_type;
@@ -810,7 +880,6 @@
         renderOptions($("selSubCategory"), subcategories, state.subCategory);
         renderOptions($("selEngine"), engines || [], state.pricingEngine);
         
-        // Set default exercise type based on sub-category
         const subConfig = PRICING_CONFIG[state.category]?.[state.subCategory];
         if (subConfig?.exercise_type) {
           state.exercise_type = subConfig.exercise_type;
@@ -831,7 +900,6 @@
         state.pricingEngine = engines[0]?.engine_id || "";
         renderOptions($("selEngine"), engines, state.pricingEngine);
         
-        // Set default exercise type based on sub-category
         const subConfig = PRICING_CONFIG[state.category]?.[state.subCategory];
         if (subConfig?.exercise_type) {
           state.exercise_type = subConfig.exercise_type;
@@ -850,7 +918,6 @@
         updatePayloadPreview();
       });
 
-      // Range-number sync
       syncPair("rng_s", "num_s");
       syncPair("rng_strike", "num_strike");
       syncPair("rng_maturity", "num_maturity");
@@ -863,7 +930,6 @@
       syncPair("rng_coupon", "num_coupon");
       syncPair("rng_lock_term", "num_lock_term");
 
-      // Default selection: 1 香草及其组合 -> 欧式、价差等组合 -> BSM解析解
       initCascades();
 
       $("btnRun").addEventListener("click", async () => {
@@ -902,4 +968,3 @@
     </script>
   </body>
 </html>
-
