@@ -1,3 +1,8 @@
+import os
+# 1. 彻底关闭 Numba JIT 编译，完美绕过 locator 报错，同时极大缩短 Vercel 冷启动时间！
+os.environ["NUMBA_DISABLE_JIT"] = "1"
+# 2. 双重保险：强制将缓存目录指向唯一可写的 /tmp
+os.environ["NUMBA_CACHE_DIR"] = "/tmp
 from http.server import BaseHTTPRequestHandler
 import json
 import traceback
