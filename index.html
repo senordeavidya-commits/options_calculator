@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>期权定价引擎 (Option Pricing) · PriceLib</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
       .panel-glow {
         box-shadow:
@@ -342,6 +343,82 @@
               <div class="text-xs text-gray-500">前端会把 r/q/vol 以 % 传给后端</div>
             </div>
             <pre id="payloadPreview" class="mt-3 overflow-auto rounded-xl bg-black/40 p-3 font-mono text-xs text-gray-300 ring-1 ring-white/5">--</pre>
+          </div>
+
+          <!-- Scenario Analysis Panel -->
+          <div class="mt-5 rounded-2xl border border-white/5 bg-gray-950/20 p-4">
+            <div class="flex items-center justify-between">
+              <div class="text-xs uppercase tracking-[0.25em] text-gray-500">情景分析 <span class="font-semibold">(Scenario Analysis)</span></div>
+              <div id="scenarioStatus" class="text-xs text-gray-500">准备就绪</div>
+            </div>
+            
+            <!-- Control Panel -->
+            <div class="mt-4 space-y-4">
+              <!-- X Axis Settings -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-sm text-gray-300">标的价格范围 (X轴)</div>
+                  <div class="text-xs text-gray-500">
+                    <input id="xMin" type="number" value="90" step="1" class="w-16 rounded bg-gray-900/70 px-2 py-1 text-xs font-mono ring-1 ring-white/10" />
+                    <span class="mx-1">~</span>
+                    <input id="xMax" type="number" value="110" step="1" class="w-16 rounded bg-gray-900/70 px-2 py-1 text-xs font-mono ring-1 ring-white/10" />
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input id="xSteps" type="number" value="10" min="2" max="20" step="1" class="w-16 rounded bg-gray-900/70 px-2 py-1 text-xs font-mono ring-1 ring-white/10" />
+                  <span class="text-xs text-gray-500">步长</span>
+                </div>
+              </div>
+              
+              <!-- Y Axis Settings -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-sm text-gray-300">波动率范围 (Y轴, %)</div>
+                  <div class="text-xs text-gray-500">
+                    <input id="yMin" type="number" value="10" step="0.1" class="w-16 rounded bg-gray-900/70 px-2 py-1 text-xs font-mono ring-1 ring-white/10" />
+                    <span class="mx-1">~</span>
+                    <input id="yMax" type="number" value="30" step="0.1" class="w-16 rounded bg-gray-900/70 px-2 py-1 text-xs font-mono ring-1 ring-white/10" />
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input id="ySteps" type="number" value="10" min="2" max="20" step="1" class="w-16 rounded bg-gray-900/70 px-2 py-1 text-xs font-mono ring-1 ring-white/10" />
+                  <span class="text-xs text-gray-500">步长</span>
+                </div>
+              </div>
+              
+              <!-- Target Value Selector -->
+              <div>
+                <div class="text-sm text-gray-300 mb-2">观测指标</div>
+                <select id="targetValue" class="w-full rounded-lg bg-gray-900/70 px-3 py-2 text-sm text-gray-100 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
+                  <option value="pv">现值 (PV)</option>
+                  <option value="delta">Delta</option>
+                  <option value="gamma">Gamma</option>
+                  <option value="vega">Vega</option>
+                  <option value="theta">Theta</option>
+                  <option value="rho">Rho</option>
+                </select>
+              </div>
+              
+              <!-- Run Button -->
+              <button id="btnRunScenario" class="w-full rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-600/20 ring-1 ring-purple-400/20 transition hover:bg-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-300/40 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:shadow-none">
+                <span id="scenarioBtnText" class="flex items-center justify-center gap-2">
+                  <span>生成压力测试矩阵</span>
+                  <span class="text-xs font-semibold uppercase text-white/70">(Run Matrix)</span>
+                </span>
+                <span id="scenarioBtnLoading" class="hidden flex items-center justify-center gap-2">
+                  <span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                  <span>计算中...</span>
+                </span>
+              </button>
+            </div>
+            
+            <!-- Chart Container -->
+            <div class="mt-4">
+              <div id="heatmapChart" class="h-72 w-full rounded-xl bg-black/30"></div>
+            </div>
+            
+            <!-- Error Box -->
+            <div id="scenarioErrBox" class="mt-3 hidden rounded-xl border border-rose-500/25 bg-rose-500/10 p-3 text-sm text-rose-200"></div>
           </div>
         </section>
       </div>
@@ -964,6 +1041,233 @@
         } finally {
           setLoading(false);
         }
+      });
+
+      // === Scenario Analysis Functions ===
+      let heatmapChart = null;
+
+      function initHeatmapChart() {
+        const chartDom = document.getElementById('heatmapChart');
+        heatmapChart = echarts.init(chartDom);
+        heatmapChart.setOption({
+          tooltip: {
+            position: 'top',
+            formatter: function(params) {
+              return `${params.name}<br/>波动率: ${params.data[1].toFixed(1)}%<br/>${params.seriesName}: ${params.data[2].toFixed(4)}`;
+            }
+          },
+          grid: {
+            left: '10%',
+            right: '15%',
+            bottom: '15%',
+            top: '10%'
+          },
+          xAxis: {
+            type: 'value',
+            name: '标的价格',
+            nameTextStyle: { color: '#9ca3af' },
+            axisLabel: { color: '#9ca3af' }
+          },
+          yAxis: {
+            type: 'value',
+            name: '波动率 (%)',
+            nameTextStyle: { color: '#9ca3af' },
+            axisLabel: { color: '#9ca3af' }
+          },
+          visualMap: {
+            min: 0,
+            max: 20,
+            calculable: true,
+            orient: 'vertical',
+            right: '2%',
+            top: 'center',
+            textStyle: { color: '#9ca3af' },
+            inRange: {
+              color: ['#1e3a5f', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#ffffff', '#fed7aa', '#fdba74', '#fb923c', '#f97316', '#dc2626']
+            }
+          },
+          series: [{
+            name: 'PV',
+            type: 'heatmap',
+            data: [],
+            label: {
+              show: false
+            },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            }
+          }]
+        });
+
+        window.addEventListener('resize', () => {
+          heatmapChart && heatmapChart.resize();
+        });
+      }
+
+      function setScenarioLoading(isLoading) {
+        const btn = $("btnRunScenario");
+        $("scenarioBtnText").classList.toggle("hidden", isLoading);
+        $("scenarioBtnLoading").classList.toggle("hidden", !isLoading);
+        $("scenarioBtnLoading").classList.toggle("flex", isLoading);
+        btn.disabled = isLoading;
+        $("scenarioStatus").textContent = isLoading ? "计算中 (Running...)" : "准备就绪";
+      }
+
+      function setScenarioErr(msg) {
+        const box = $("scenarioErrBox");
+        if (!msg) {
+          box.classList.add("hidden");
+          box.textContent = "";
+          return;
+        }
+        box.textContent = msg;
+        box.classList.remove("hidden");
+      }
+
+      function renderHeatmap(data) {
+        if (!heatmapChart) {
+          initHeatmapChart();
+        }
+
+        const matrix = data.matrix;
+        const xAxis = data.x_axis;
+        const yAxis = data.y_axis;
+        const targetValue = data.target_value;
+
+        // 转换数据格式: [x, y, value]
+        const heatmapData = [];
+        for (let i = 0; i < yAxis.length; i++) {
+          for (let j = 0; j < xAxis.length; j++) {
+            heatmapData.push([xAxis[j], yAxis[i], matrix[i][j]]);
+          }
+        }
+
+        // 计算颜色范围
+        let minVal = Infinity, maxVal = -Infinity;
+        heatmapData.forEach(d => {
+          if (d[2] < minVal) minVal = d[2];
+          if (d[2] > maxVal) maxVal = d[2];
+        });
+
+        const targetNames = {
+          pv: '现值 (PV)',
+          delta: 'Delta',
+          gamma: 'Gamma',
+          vega: 'Vega',
+          theta: 'Theta',
+          rho: 'Rho'
+        };
+
+        heatmapChart.setOption({
+          xAxis: {
+            type: 'value',
+            name: '标的价格',
+            min: Math.min(...xAxis),
+            max: Math.max(...xAxis),
+            nameTextStyle: { color: '#9ca3af' },
+            axisLabel: { color: '#9ca3af' }
+          },
+          yAxis: {
+            type: 'value',
+            name: '波动率 (%)',
+            min: Math.min(...yAxis),
+            max: Math.max(...yAxis),
+            nameTextStyle: { color: '#9ca3af' },
+            axisLabel: { color: '#9ca3af' }
+          },
+          visualMap: {
+            min: minVal,
+            max: maxVal,
+            calculable: true,
+            orient: 'vertical',
+            right: '2%',
+            top: 'center',
+            textStyle: { color: '#9ca3af' },
+            inRange: {
+              color: ['#1e3a5f', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#ffffff', '#fed7aa', '#fdba74', '#fb923c', '#f97316', '#dc2626']
+            }
+          },
+          series: [{
+            name: targetNames[targetValue] || targetValue,
+            type: 'heatmap',
+            data: heatmapData,
+            label: {
+              show: false
+            },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            }
+          }]
+        });
+      }
+
+      $("btnRunScenario").addEventListener("click", async () => {
+        setScenarioErr("");
+        setScenarioLoading(true);
+        try {
+          // 获取矩阵配置
+          const matrixConfig = {
+            x_param: "s",
+            x_min: Number($("xMin").value),
+            x_max: Number($("xMax").value),
+            x_steps: Number($("xSteps").value),
+            y_param: "vol",
+            y_min: Number($("yMin").value),
+            y_max: Number($("yMax").value),
+            y_steps: Number($("ySteps").value),
+            target_value: $("targetValue").value
+          };
+
+          // 获取当前产品参数
+          const params = getPayload();
+
+          const payload = {
+            params: params,
+            matrix_config: matrixConfig
+          };
+
+          const resp = await fetch("/api/matrix", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const text = await resp.text();
+          let data;
+          try {
+            data = text ? JSON.parse(text) : {};
+          } catch {
+            data = { error: text || "响应不是合法 JSON (Invalid JSON response)" };
+          }
+
+          if (!resp.ok) {
+            throw new Error(data.error || data.msg || `HTTP ${resp.status}`);
+          }
+
+          if (data.code !== 0) {
+            throw new Error(data.msg || "服务器返回错误");
+          }
+
+          renderHeatmap(data.data);
+          $("scenarioStatus").textContent = "成功 (OK)";
+        } catch (e) {
+          $("scenarioStatus").textContent = "错误 (Error)";
+          console.error("Matrix API 请求错误:", e);
+          setScenarioErr(String(e && e.message ? e.message : e));
+        } finally {
+          setScenarioLoading(false);
+        }
+      });
+
+      // 初始化热力图
+      document.addEventListener('DOMContentLoaded', () => {
+        initHeatmapChart();
       });
     </script>
   </body>
