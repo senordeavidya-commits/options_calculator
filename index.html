@@ -269,6 +269,50 @@
                 </div>
                 <input id="rng_lock_term" type="range" min="0" max="24" step="1" value="3" class="w-full" />
               </div>
+
+              <div id="mod_param_s0" data-param="s0" class="hidden rounded-xl border border-white/5 bg-gray-950/30 p-4">
+                <div class="mb-3 flex items-center justify-between">
+                  <div>
+                    <div class="text-sm font-medium text-gray-200">期初价格</div>
+                    <div class="text-xs font-semibold uppercase text-gray-500">Initial Price (S0)</div>
+                  </div>
+                  <input id="num_s0" type="number" class="w-28 rounded-lg bg-gray-900/70 px-3 py-2 font-mono text-sm ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/50" value="100" step="1" />
+                </div>
+                <input id="rng_s0" type="range" min="0" max="300" step="1" value="100" class="w-full" />
+              </div>
+
+              <div id="mod_param_rebate" data-param="rebate" class="hidden rounded-xl border border-white/5 bg-gray-950/30 p-4">
+                <div class="mb-3 flex items-center justify-between">
+                  <div>
+                    <div class="text-sm font-medium text-gray-200">赔付金额</div>
+                    <div class="text-xs font-semibold uppercase text-gray-500">Rebate</div>
+                  </div>
+                  <input id="num_rebate" type="number" class="w-28 rounded-lg bg-gray-900/70 px-3 py-2 font-mono text-sm ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/50" value="1" step="0.01" />
+                </div>
+                <input id="rng_rebate" type="range" min="0" max="10" step="0.01" value="1" class="w-full" />
+              </div>
+
+              <div id="mod_param_leverage_ratio" data-param="leverage_ratio" class="hidden rounded-xl border border-white/5 bg-gray-950/30 p-4">
+                <div class="mb-3 flex items-center justify-between">
+                  <div>
+                    <div class="text-sm font-medium text-gray-200">杠杆倍数</div>
+                    <div class="text-xs font-semibold uppercase text-gray-500">Leverage Ratio</div>
+                  </div>
+                  <input id="num_leverage_ratio" type="number" class="w-28 rounded-lg bg-gray-900/70 px-3 py-2 font-mono text-sm ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/50" value="1" step="0.1" />
+                </div>
+                <input id="rng_leverage_ratio" type="range" min="0.1" max="10" step="0.1" value="1" class="w-full" />
+              </div>
+
+              <div id="mod_param_barrier_yield" data-param="barrier_yield" class="hidden rounded-xl border border-white/5 bg-gray-950/30 p-4">
+                <div class="mb-3 flex items-center justify-between">
+                  <div>
+                    <div class="text-sm font-medium text-gray-200">障碍收益率</div>
+                    <div class="text-xs font-semibold uppercase text-gray-500">Barrier Yield / %</div>
+                  </div>
+                  <input id="num_barrier_yield" type="number" class="w-28 rounded-lg bg-gray-900/70 px-3 py-2 font-mono text-sm ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/50" value="0" step="0.01" />
+                </div>
+                <input id="rng_barrier_yield" type="range" min="-20" max="50" step="0.01" value="0" class="w-full" />
+              </div>
             </div>
           </div>
 
@@ -467,7 +511,7 @@
               { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" },
               { name: "积分法 (QuadSnowballEngine)", engine_id: "QuadSnowballEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "StandardSnowball",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -475,7 +519,7 @@
             engines: [
               { name: "蒙特卡洛模拟 (MCParisSnowballEngine)", engine_id: "MCParisSnowballEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "ParisSnowball",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -484,7 +528,7 @@
               { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
               { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "StepDownSnowball",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -493,7 +537,7 @@
               { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
               { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "EarlyProfitSnowball",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -502,7 +546,7 @@
               { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
               { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "ButterflySnowball",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -511,7 +555,7 @@
               { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
               { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "ParachuteSnowball",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -520,7 +564,7 @@
               { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
               { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "OTMSnowball",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -529,7 +573,7 @@
               { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
               { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "BothDownSnowball",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -538,7 +582,7 @@
               { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
               { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "SnowballPlus",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -547,7 +591,7 @@
               { name: "PDE有限差分法 (FdmSnowBallEngine)", engine_id: "FdmSnowBallEngine" },
               { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "FlooredSnowball",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -613,7 +657,7 @@
               { name: "积分法 (QuadDigitalEngine)", engine_id: "QuadDigitalEngine" },
               { name: "二叉树 (BiTreeDigitalEngine)", engine_id: "BiTreeDigitalEngine" }
             ],
-            params: ["s", "strike", "maturity", "r", "q", "vol", "callput"],
+            params: ["s", "strike", "maturity", "r", "q", "vol", "callput", "rebate"],
             class: "DigitalOption",
             ui: { hideExercise: true }
           },
@@ -622,7 +666,7 @@
               { name: "蒙特卡洛模拟 (MCDigitalEngine)", engine_id: "MCDigitalEngine" },
               { name: "PDE有限差分法 (FdmDigitalEngine)", engine_id: "FdmDigitalEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out"],
+            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "rebate"],
             class: "DoubleDigitalOption",
             ui: { hideExercise: true, hideCallput: true }
           },
@@ -632,7 +676,7 @@
             engines: [
               { name: "蒙特卡洛模拟 (MCAccumulatorEngine)", engine_id: "MCAccumulatorEngine" }
             ],
-            params: ["s", "strike", "maturity", "r", "q", "vol", "barrier_out"],
+            params: ["s", "s0", "strike", "maturity", "r", "q", "vol", "barrier_out", "leverage_ratio"],
             class: "Accumulator",
             ui: { hideExercise: true }
           },
@@ -640,7 +684,7 @@
             engines: [
               { name: "蒙特卡洛模拟 (MCRangeAccuralEngine)", engine_id: "MCRangeAccuralEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon"],
             class: "RangeAccural",
             ui: { hideExercise: true, hideCallput: true }
           },
@@ -651,7 +695,7 @@
               { name: "蒙特卡洛模拟 (MCAutoCallableEngine)", engine_id: "MCAutoCallableEngine" },
               { name: "积分法 (QuadAutoCallEngine)", engine_id: "QuadAutoCallEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_out", "coupon", "lock_term"],
             class: "AutoCall",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -660,7 +704,7 @@
               { name: "积分法 (QuadFcnEngine)", engine_id: "QuadFcnEngine" },
               { name: "蒙特卡洛模拟 (MCPhoenixEngine)", engine_id: "MCPhoenixEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "FCN",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -668,7 +712,7 @@
             engines: [
               { name: "蒙特卡洛模拟 (MCPhoenixEngine)", engine_id: "MCPhoenixEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
             class: "DCN",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -676,7 +720,7 @@
             engines: [
               { name: "蒙特卡洛模拟 (MCPhoenixEngine)", engine_id: "MCPhoenixEngine" }
             ],
-            params: ["s", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term"],
+            params: ["s", "s0", "maturity", "r", "q", "vol", "barrier_in", "barrier_out", "coupon", "lock_term", "barrier_yield"],
             class: "Phoenix",
             ui: { hideStrike: true, hideCallput: true, hideExercise: true }
           },
@@ -824,6 +868,7 @@
 
         const map = {
           s: "num_s",
+          s0: "num_s0",
           strike: "num_strike",
           maturity: "num_maturity",
           r: "num_r",
@@ -834,6 +879,9 @@
           barrier_out: "num_barrier_out",
           coupon: "num_coupon",
           lock_term: "num_lock_term",
+          rebate: "num_rebate",
+          leverage_ratio: "num_leverage_ratio",
+          barrier_yield: "num_barrier_yield",
         };
 
         for (const [key, id] of Object.entries(map)) {
@@ -841,16 +889,6 @@
           const el = $(id);
           if (!el) continue;
           payload[key] = Number(el.value);
-        }
-
-        if (cfg?.class && cfg.class.includes("Snowball")) {
-          payload.s0 = payload.s;
-          delete payload.s;
-        }
-
-        if (cfg?.class && ['AutoCall', 'Accumulator', 'RangeAccural', 'FCN', 'DCN', 'Phoenix'].includes(cfg.class)) {
-          payload.s0 = payload.s;
-          delete payload.s;
         }
 
         return payload;
@@ -996,6 +1034,7 @@
       });
 
       syncPair("rng_s", "num_s");
+      syncPair("rng_s0", "num_s0");
       syncPair("rng_strike", "num_strike");
       syncPair("rng_maturity", "num_maturity");
       syncPair("rng_r", "num_r");
@@ -1006,6 +1045,9 @@
       syncPair("rng_barrier_out", "num_barrier_out");
       syncPair("rng_coupon", "num_coupon");
       syncPair("rng_lock_term", "num_lock_term");
+      syncPair("rng_rebate", "num_rebate");
+      syncPair("rng_leverage_ratio", "num_leverage_ratio");
+      syncPair("rng_barrier_yield", "num_barrier_yield");
 
       initCascades();
 
