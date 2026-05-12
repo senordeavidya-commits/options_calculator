@@ -1,18 +1,8 @@
 {
-  "builds": [
+  "rewrites": [
     {
-      "src": "api/**/*.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1.py"
+      "source": "/((?!api/.*).*)",
+      "destination": "/index.html"
     }
   ]
 }
