@@ -1,13 +1,7 @@
-import os
-# 1. 彻底关闭 Numba JIT 编译
-os.environ["NUMBA_DISABLE_JIT"] = "1"
-# 2. 强制缓存到 /tmp
-os.environ["NUMBA_CACHE_DIR"] = "/tmp"
-
 from http.server import BaseHTTPRequestHandler
 import json
 import traceback
-import pricelib  # 必须在 os.environ 之后导入
+import pricelib
 
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
