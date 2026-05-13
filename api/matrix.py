@@ -152,12 +152,7 @@ class handler(BaseHTTPRequestHandler):
                     result = option.pv_and_greeks()
                     
                     # 获取目标值
-                    if target_value == 'pv':
-                        val = result.get('pv', 0)
-                    elif target_value in ['delta', 'gamma', 'vega', 'theta', 'rho']:
-                        val = result.get('greeks', {}).get(target_value, 0)
-                    else:
-                        val = result.get(target_value, 0)
+                    val = result.get(target_value, 0)
                     
                     row.append(val)
                 matrix_data.append(row)
