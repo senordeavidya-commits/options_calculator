@@ -1220,7 +1220,11 @@
 
         const seriesName = targetNames[targetValue] || targetValue;
 
-        scenarioChart.clear();
+        // 彻底销毁旧实例，强制 ECharts 根据新 Option 重建 WebGL/2D 渲染引擎
+        if (scenarioChart) {
+          scenarioChart.dispose();
+        }
+        scenarioChart = echarts.init(document.getElementById('heatmapChart'));
         if (viewMode === '3d') {
           // 3D 曲面图配置
           scenarioChart.setOption({
