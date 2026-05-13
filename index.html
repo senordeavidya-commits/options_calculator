@@ -6,6 +6,7 @@
     <title>期权定价引擎 (Option Pricing) · PriceLib</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.staticfile.org/echarts/5.4.3/echarts.min.js"></script>
+    <script src="https://cdn.staticfile.org/echarts-gl/2.0.9/echarts-gl.min.js"></script>
     <style>
       .panel-glow {
         box-shadow:
@@ -441,6 +442,19 @@
                   <option value="theta">Theta</option>
                   <option value="rho">Rho</option>
                 </select>
+              </div>
+              
+              <!-- View Mode Toggle -->
+              <div>
+                <div class="text-sm text-gray-300 mb-2">图表模式</div>
+                <div class="flex rounded-lg bg-gray-900/70 p-1">
+                  <button id="btnView2D" class="flex-1 rounded-md bg-blue-600 px-3 py-2 text-xs font-medium text-white ring-1 ring-blue-400/50 transition hover:bg-blue-500">
+                    2D 热力图
+                  </button>
+                  <button id="btnView3D" class="flex-1 rounded-md px-3 py-2 text-xs font-medium text-gray-400 transition hover:text-white hover:bg-gray-800">
+                    3D 曲面图
+                  </button>
+                </div>
               </div>
               
               <!-- Run Button -->
@@ -1086,17 +1100,24 @@
       });
 
       // === Scenario Analysis Functions ===
-      let heatmapChart = null;
+      let scenarioChart = null;
+      let currentViewMode = '2d'; // '2d' or '3d'
+      let cachedMatrixData = null; // 缓存最近一次获取的矩阵数据
 
-      function initHeatmapChart() {
+      function initScenarioChart() {
         const chartDom = document.getElementById('heatmapChart');
-        heatmapChart = echarts.init(chartDom);
-        heatmapChart.setOption({
+        scenarioChart = echarts.init(chartDom);
+        renderEmptyChart();
+
+        window.addEventListener('resize', () => {
+          scenarioChart && scenarioChart.resize();
+        });
+      }
+
+      function renderEmptyChart() {
+        scenarioChart.setOption({
           tooltip: {
-            position: 'top',
-            formatter: function(params) {
-              return `${params.name}<br/>波动率: ${params.data[1].toFixed(1)}%<br/>${params.seriesName}: ${params.data[2].toFixed(4)}`;
-            }
+            position: 'top'
           },
           grid: {
             left: '10%',
@@ -1134,18 +1155,8 @@
             data: [],
             label: {
               show: false
-            },
-            emphasis: {
-              itemStyle: {
-                shadowBlur: 10,
-                shadowColor: 'rgba(0, 0, 0, 0.5)'
-              }
             }
           }]
-        });
-
-        window.addEventListener('resize', () => {
-          heatmapChart && heatmapChart.resize();
         });
       }
 
@@ -1169,10 +1180,14 @@
         box.classList.remove("hidden");
       }
 
-      function renderHeatmap(data) {
-        if (!heatmapChart) {
-          initHeatmapChart();
+      function renderChart(data, viewMode) {
+        if (!scenarioChart) {
+          initScenarioChart();
         }
+
+        // 缓存数据
+        cachedMatrixData = data;
+        currentViewMode = viewMode || '2d';
 
         const matrix = data.matrix;
         const xAxis = data.x_axis;
@@ -1180,16 +1195,16 @@
         const targetValue = data.target_value;
 
         // 转换数据格式: [x, y, value]
-        const heatmapData = [];
+        const chartData = [];
         for (let i = 0; i < yAxis.length; i++) {
           for (let j = 0; j < xAxis.length; j++) {
-            heatmapData.push([xAxis[j], yAxis[i], matrix[i][j]]);
+            chartData.push([xAxis[j], yAxis[i], matrix[i][j]]);
           }
         }
 
         // 计算颜色范围
         let minVal = Infinity, maxVal = -Infinity;
-        heatmapData.forEach(d => {
+        chartData.forEach(d => {
           if (d[2] < minVal) minVal = d[2];
           if (d[2] > maxVal) maxVal = d[2];
         });
@@ -1203,50 +1218,156 @@
           rho: 'Rho'
         };
 
-        heatmapChart.setOption({
-          xAxis: {
-            type: 'value',
-            name: '标的价格',
-            min: Math.min(...xAxis),
-            max: Math.max(...xAxis),
-            nameTextStyle: { color: '#9ca3af' },
-            axisLabel: { color: '#9ca3af' }
-          },
-          yAxis: {
-            type: 'value',
-            name: '波动率 (%)',
-            min: Math.min(...yAxis),
-            max: Math.max(...yAxis),
-            nameTextStyle: { color: '#9ca3af' },
-            axisLabel: { color: '#9ca3af' }
-          },
-          visualMap: {
-            min: minVal,
-            max: maxVal,
-            calculable: true,
-            orient: 'vertical',
-            right: '2%',
-            top: 'center',
-            textStyle: { color: '#9ca3af' },
-            inRange: {
-              color: ['#1e3a5f', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#ffffff', '#fed7aa', '#fdba74', '#fb923c', '#f97316', '#dc2626']
-            }
-          },
-          series: [{
-            name: targetNames[targetValue] || targetValue,
-            type: 'heatmap',
-            data: heatmapData,
-            label: {
-              show: false
-            },
-            emphasis: {
-              itemStyle: {
-                shadowBlur: 10,
-                shadowColor: 'rgba(0, 0, 0, 0.5)'
+        const seriesName = targetNames[targetValue] || targetValue;
+
+        if (viewMode === '3d') {
+          // 3D 曲面图配置
+          scenarioChart.setOption({
+            tooltip: {
+              position: 'top',
+              formatter: function(params) {
+                return `标的价格: ${params.data[0].toFixed(2)}<br/>波动率: ${params.data[1].toFixed(1)}%<br/>${seriesName}: ${params.data[2].toFixed(4)}`;
               }
-            }
-          }]
-        });
+            },
+            visualMap: {
+              min: minVal,
+              max: maxVal,
+              calculable: true,
+              orient: 'vertical',
+              right: '2%',
+              top: 'center',
+              textStyle: { color: '#9ca3af' },
+              inRange: {
+                color: ['#1e3a5f', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#ffffff', '#fed7aa', '#fdba74', '#fb923c', '#f97316', '#dc2626']
+              }
+            },
+            grid3D: {
+              viewControl: {
+                projection: 'perspective',
+                autoRotate: false,
+                distance: 200
+              },
+              light: {
+                main: {
+                  intensity: 1.2,
+                  shadow: true
+                },
+                ambient: {
+                  intensity: 0.3
+                }
+              },
+              boxWidth: 100,
+              boxHeight: 60,
+              boxDepth: 100,
+              environment: 'none'
+            },
+            xAxis3D: {
+              type: 'value',
+              name: '标的价格',
+              min: Math.min(...xAxis),
+              max: Math.max(...xAxis),
+              nameTextStyle: { color: '#9ca3af' },
+              axisLabel: { color: '#9ca3af' }
+            },
+            yAxis3D: {
+              type: 'value',
+              name: '波动率 (%)',
+              min: Math.min(...yAxis),
+              max: Math.max(...yAxis),
+              nameTextStyle: { color: '#9ca3af' },
+              axisLabel: { color: '#9ca3af' }
+            },
+            zAxis3D: {
+              type: 'value',
+              name: seriesName,
+              min: minVal,
+              max: maxVal,
+              nameTextStyle: { color: '#9ca3af' },
+              axisLabel: { color: '#9ca3af' }
+            },
+            series: [{
+              name: seriesName,
+              type: 'surface',
+              wireframe: {
+                show: true,
+                lineStyle: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              },
+              shading: 'color',
+              data: chartData,
+              itemStyle: {
+                opacity: 0.9
+              },
+              emphasis: {
+                label: {
+                  show: false
+                },
+                itemStyle: {
+                  opacity: 1
+                }
+              }
+            }]
+          });
+        } else {
+          // 2D 热力图配置
+          scenarioChart.setOption({
+            tooltip: {
+              position: 'top',
+              formatter: function(params) {
+                return `标的价格: ${params.name}<br/>波动率: ${params.data[1].toFixed(1)}%<br/>${seriesName}: ${params.data[2].toFixed(4)}`;
+              }
+            },
+            grid: {
+              left: '10%',
+              right: '15%',
+              bottom: '15%',
+              top: '10%'
+            },
+            xAxis: {
+              type: 'value',
+              name: '标的价格',
+              min: Math.min(...xAxis),
+              max: Math.max(...xAxis),
+              nameTextStyle: { color: '#9ca3af' },
+              axisLabel: { color: '#9ca3af' }
+            },
+            yAxis: {
+              type: 'value',
+              name: '波动率 (%)',
+              min: Math.min(...yAxis),
+              max: Math.max(...yAxis),
+              nameTextStyle: { color: '#9ca3af' },
+              axisLabel: { color: '#9ca3af' }
+            },
+            visualMap: {
+              min: minVal,
+              max: maxVal,
+              calculable: true,
+              orient: 'vertical',
+              right: '2%',
+              top: 'center',
+              textStyle: { color: '#9ca3af' },
+              inRange: {
+                color: ['#1e3a5f', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#ffffff', '#fed7aa', '#fdba74', '#fb923c', '#f97316', '#dc2626']
+              }
+            },
+            series: [{
+              name: seriesName,
+              type: 'heatmap',
+              data: chartData,
+              label: {
+                show: false
+              },
+              emphasis: {
+                itemStyle: {
+                  shadowBlur: 10,
+                  shadowColor: 'rgba(0, 0, 0, 0.5)'
+                }
+              }
+            }]
+          });
+        }
       }
 
       $("btnRunScenario").addEventListener("click", async () => {
@@ -1296,7 +1417,7 @@
             throw new Error(data.msg || "服务器返回错误");
           }
 
-          renderHeatmap(data.data);
+          renderChart(data.data, currentViewMode);
           $("scenarioStatus").textContent = "成功 (OK)";
         } catch (e) {
           $("scenarioStatus").textContent = "错误 (Error)";
@@ -1307,9 +1428,34 @@
         }
       });
 
-      // 初始化热力图
+      // 2D/3D 视图切换
+      $("btnView2D").addEventListener("click", () => {
+        currentViewMode = '2d';
+        $("btnView2D").classList.add('bg-blue-600', 'text-white', 'ring-1', 'ring-blue-400/50');
+        $("btnView2D").classList.remove('text-gray-400', 'hover:text-white', 'hover:bg-gray-800');
+        $("btnView3D").classList.remove('bg-blue-600', 'text-white', 'ring-1', 'ring-blue-400/50');
+        $("btnView3D").classList.add('text-gray-400', 'hover:text-white', 'hover:bg-gray-800');
+        
+        if (cachedMatrixData) {
+          renderChart(cachedMatrixData, '2d');
+        }
+      });
+
+      $("btnView3D").addEventListener("click", () => {
+        currentViewMode = '3d';
+        $("btnView3D").classList.add('bg-blue-600', 'text-white', 'ring-1', 'ring-blue-400/50');
+        $("btnView3D").classList.remove('text-gray-400', 'hover:text-white', 'hover:bg-gray-800');
+        $("btnView2D").classList.remove('bg-blue-600', 'text-white', 'ring-1', 'ring-blue-400/50');
+        $("btnView2D").classList.add('text-gray-400', 'hover:text-white', 'hover:bg-gray-800');
+        
+        if (cachedMatrixData) {
+          renderChart(cachedMatrixData, '3d');
+        }
+      });
+
+      // 初始化图表
       document.addEventListener('DOMContentLoaded', () => {
-        initHeatmapChart();
+        initScenarioChart();
       });
     </script>
   </body>
